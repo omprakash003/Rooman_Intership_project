@@ -1,36 +1,17 @@
-import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-import numpy as np
 import joblib
+import pandas as pd
 
 df = pd.read_csv('data/labeled_cleaned.csv')
 
+feature_cols = df.columns.difference(['unit_number', 'time_in_cycles', 'RUL'])
+scaler_X = MinMaxScaler()
+scaler_y = MinMaxScaler()
 
-exclude_cols = ['unit_number', 'time_in_cycles', 'RUL']
-cols_to_scale = df.columns.difference(exclude_cols)
+df[feature_cols] = scaler_X.fit_transform(df[feature_cols])
+df[['RUL']] = scaler_y.fit_transform(df[['RUL']])
 
-
-scaler = MinMaxScaler()
-df[cols_to_scale] = scaler.fit_transform(df[cols_to_scale])
-
-
-joblib.dump(scaler, 'models/minmax_scaler.pkl')
-
-
-unique_units = np.sort(df['unit_number'].unique())  # ensure consistency
-num_test_units = int(len(unique_units) * 0.2)
-test_units = unique_units[-num_test_units:]  # last 20% as test units
+joblib.dump(scaler_X, 'models/feature_scaler.pkl')
+joblib.dump(scaler_y, 'models/rul_scaler.pkl')
 
 
-train_df = df[~df['unit_number'].isin(test_units)].reset_index(drop=True)
-test_df = df[df['unit_number'].isin(test_units)].reset_index(drop=True)
-
-
-train_df.to_csv('data/train_normalized.csv', index=False)
-test_df.to_csv('data/test_normalized.csv', index=False)
-
-
-print(" Normalization & Splitting Done!")
-print("Train shape:", train_df.shape)
-print("Test shape:", test_df.shape)
-print("Columns scaled:", cols_to_scale.tolist())
